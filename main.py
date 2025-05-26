@@ -29,6 +29,8 @@ class Application(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         
+        self.serial_Port = None
+        
         #self.master = tk.Tk()
         # GUIの設定
         self.master.title("シリアル通信テスト")
@@ -40,6 +42,7 @@ class Application(tk.Frame):
 
         left = 10;
         top = 10
+        marginX = 80
         marginY = 30
         
         self.labelComSet = tk.Label(self.master, text="通信設定")
@@ -87,9 +90,14 @@ class Application(tk.Frame):
         top += marginY
 
         # ボタンの設定
-        self.buttonSetSerial = tk.Button(self.master, text="Set", width=10, command=self.ButtonSetSerial_Click)
-        self.buttonSetSerial.place(x=left, y=top)
-        self.buttonSetSerial['state'] = tk.NORMAL
+        self.buttonOpenSerial = tk.Button(self.master, text="Open", width=8, command=self.Button_OpenSerial_Click)
+        self.buttonOpenSerial.place(x=left, y=top)
+        self.buttonOpenSerial['state'] = tk.NORMAL
+
+        # ボタンの設定
+        self.buttonCloseSerial = tk.Button(self.master, text="Close", width=8, command=self.Button_CloseSerial_Click)
+        self.buttonCloseSerial.place(x=left+marginX, y=top)
+        self.buttonCloseSerial['state'] = tk.NORMAL
 
         left = 250;
         top = 10
@@ -105,7 +113,7 @@ class Application(tk.Frame):
         top += marginY
 
         # ボタンの設定
-        self.buttonSendMsg = tk.Button(self.master, text="Send", width=10, command=self.ButtonSendMsg_Click)
+        self.buttonSendMsg = tk.Button(self.master, text="Send", width=10, command=self.Button_SendMsg_Click)
         self.buttonSendMsg.place(x=left, y=top)
         self.buttonSendMsg['state'] = tk.NORMAL
 
@@ -121,12 +129,21 @@ class Application(tk.Frame):
         self.entryText.place(x=left, y=top)
         
 
-    def ButtonSetSerial_Click(self):
-        Serial_Port=serial.Serial(port=self.comboCOM, baudrate=9600)
+    def Button_OpenSerial_Click(self):
+        self.serial_Port==serial.Serial(port='COM7', baudrate=9600)
+
+        self.rcnFlg = True;
+        self.thread = threading.Thread(target=self.RecMsg)
+        self.thread.start()
 
 
+    def Button_CloseSerial_Click(self):
+        self.serial_Port.close()
+        self.rcnFlg = False;
+        self.thread.join()
 
-    def ButtonSendMsg_Click(self):
+
+    def Button_SendMsg_Click(self):
         self.serial_Port=serial.Serial(port='COM10', baudrate=9600)
         #data='a'+'\r\n'
         #data=data.encode('utf-8')
@@ -140,8 +157,24 @@ class Application(tk.Frame):
         self.serial_Port.close()
 
 
+    def RecMsg(self):
+        while self.rcnFlg:
+            data=self.serial_Port.readline() 
+            # 1byte受信なら data=Serial_Port.read(1)
+            data=data.strip()
+            data=data.decode('utf-8')
+            self.entryText.insert(data)
+            time.sleep(1)
+
+
+#終了処理
+def FormClose_Click():
+    pass
+
+
 def main():
     win = tk.Tk()
+    win.protocol("WM_DELETE_WINDOW", FormClose_Click)
     app = Application(master=win)
     app.mainloop()
 
